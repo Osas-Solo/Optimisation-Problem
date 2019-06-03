@@ -95,7 +95,7 @@ public class OptimisationProgram {
                     //  input </>/=
                     foundException = true;
                     while (foundException) {
-                        System.out.println("Enter inequality/equation symbol: ");
+                        System.out.println("Enter inequality/equation symbol (< / > / =): ");
                         simplex.symbols[i - 1] = scan.next();
 
                         if (simplex.symbols[i - 1].equals("<") || simplex.symbols[i - 1].equals(">") || simplex.symbols[i - 1].equals("=")) {
