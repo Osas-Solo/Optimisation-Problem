@@ -1,6 +1,11 @@
+import javafx.scene.control.TextArea;
+
 /**
- *  The class {@code Simplex} solves optimisation problems
- *  using simplex method.
+ *  <p>The class {@code Simplex} contains a 2-dimensional array to
+ *  store coefficients of variables for a number of constraints
+ *  and their objective function.</p>
+ *  <p>It also contains methods that can be put together
+ *  to solve optimisation problems using simplex method.</p>
  *
  *  @author Osaremhen Ukpebor
  */
@@ -62,9 +67,9 @@ public class Simplex {
     }  //  end of constructor
 
     /**
-     *  Sets slack, surplus and artificial variables.
+     *  Sets the coefficients of slack, surplus and artificial variables.
      *  Also sets variable titles and negates coefficients
-     *  of variable in the objective function
+     *  of variable in the objective function. It must be called before the {@code optimise()} method.
      */
     public void prepareSimpex() {
         //  set slack, surplus and artificial variables
@@ -115,7 +120,7 @@ public class Simplex {
     }  //  end of prepareSimplex()
 
     /**
-     *  Outputs tableu
+     *  Outputs current values of variable coefficients in a table.
      */
     public void printSimplex () {
         //  print column titles
@@ -144,11 +149,44 @@ public class Simplex {
     }  //  end of printSimplex()
 
     /**
-     *  Eliminates a negative coefficient in the objective function
+     * Outputs current values of variable coefficients in a table.
+     * <p>Used in GUI.</p>
+     * @param display is the {@code TextArea} used for output.
      */
-    public void solveSimplex () {
+    public void printSimplex(TextArea display) {
+        //  print column titles
+        display.appendText(String.format("%20s", " "));
+        for (int i = 0; i < columnTitles.length; i++) {
+            display.appendText(String.format("%20s", columnTitles[i]));
+        }
+        display.appendText(String.format("%20s\n", "Solution"));
+
+        //  print P titles and coefficients
+        display.appendText(String.format("%20s :", "P"));
+        for (int i = 0; i < coefficients[0].length; i++) {
+            display.appendText(String.format("%18.2f", coefficients[0][i]));
+        }
+        display.appendText("\n");
+
+        // print other rows titles and coefficients
+        for (int i = 0; i < rowTitles.length; i++) {
+            display.appendText(String.format("%20s:", rowTitles[i]));
+            for (int j = 0; j < coefficients[i].length; j++) {
+                display.appendText(String.format("%18.2f", coefficients[i + 1][j]));
+            }
+            display.appendText("\n");
+        }
+
+    }  //  end of printSimplex()
+
+    /**
+     *  Eliminates a negative coefficient in the objective function.
+     *
+     *  Called in the {@code optimise()} method.
+     */
+    private void solveSimplex () {
         double key = 0;
-        int keyColumn = 0, keyRow = 0;
+        int keyColumn = 0, keyRow = 1;
         double pivot = 1;
 
         //  find key column
@@ -187,10 +225,12 @@ public class Simplex {
 
     /**
      *  Tries to eliminate artificial variables
-     *  that were not eliminated by the <code>solveSimplex</code> method
+     *  that were not eliminated by the {@code solveSimplex()} method.
+     *
+     *  Called in the {@code optimise()} method.
      */
-    public void removeArtificialVariable() {
-        int keyColumn = 0, keyRow = 0;
+    private void removeArtificialVariable() {
+        int keyColumn = 0, keyRow = 1;
         double pivot = 1;
 
         //  find key column
@@ -202,7 +242,7 @@ public class Simplex {
         }
 
         //  find key row
-        for (int i = 0; i < rowTitles.length; i++) {
+        for (int i = 1; i < rowTitles.length; i++) {
             boolean keyRowFound = false;
             for (int j = constraintNumber + variableNumber; j < columnTitles.length; j++) {
                 if (rowTitles[i].contains(columnTitles[j])) {
@@ -235,7 +275,7 @@ public class Simplex {
     }  //  end of removeArtificialVariable()
 
     /**
-     *  Tries to get the optimum solution
+     *  Solves the optimisation problem and get the optimum solution.
      */
     public void optimise() {
         printSimplex();
@@ -254,7 +294,9 @@ public class Simplex {
             }
             System.out.println();
             printSimplex();
-            for (int i = 0; i < constraintNumber + variableNumber; i++) {  //  check if any coefficient in the index row is negative
+
+            //  check if any coefficient in the index row is negative
+            for (int i = 0; i < constraintNumber + variableNumber; i++) {
                 if (coefficients[0][i] < 0) {
                     foundOptimum = false;
                     break;
@@ -293,6 +335,70 @@ public class Simplex {
         System.out.printf("\n\nOptimum solution found after %d iteration(s)\n", iteration);
         System.out.printf("P = %.2f", coefficients[0][colSize - 1]);
 
-    }
+    }  //  end of optimise()
+
+    /**
+     * Solves the optimisation problem and get the optimum solution.
+     * @param display is the {@code TextArea} used for output.
+     */
+    public void optimise(TextArea display) {
+        printSimplex(display);
+
+        boolean foundOptimum = false;
+        int iteration = 0;
+        boolean foundArtificialVariable = false;
+
+        while (!foundOptimum) {
+            iteration++;
+            if (!foundArtificialVariable) {
+                solveSimplex();
+            }
+            else {
+                removeArtificialVariable();
+            }
+            display.appendText("\n");
+            printSimplex(display);
+
+            //  check if any coefficient in the index row is negative
+            for (int i = 0; i < constraintNumber + variableNumber; i++) {
+                if (coefficients[0][i] < 0) {
+                    foundOptimum = false;
+                    break;
+                }
+                else {
+                    foundOptimum = true;
+                }  //  end of else
+            }  //  end of for loop to check negative index coefficient
+
+            //  check if artificial variable has been removed
+            if (foundOptimum) {
+                for (int j = 0; j < rowTitles.length; j++) {
+                    for (int m = variableNumber + constraintNumber; m < columnTitles.length; m++) {
+                        if (rowTitles[j].contains(columnTitles[m])) {
+                            foundArtificialVariable = true;
+                            foundOptimum = false;
+                            break;
+                        } else {
+                            foundArtificialVariable = false;
+                            foundOptimum = true;
+                        }
+                    }
+                    if (foundArtificialVariable) {
+                        break;
+                    }
+                }  //  end of for loop to check artificial variable
+            }  //  end of if statement to check artificial variable rows
+
+        }  //  end of while
+
+        //  convert minimisation solution to maximisation solution
+        if (optimisationType == 2) {
+            coefficients[0][colSize - 1] *= -1;
+        }
+
+        display.appendText(String.format("\n\nOptimum solution found after %d iteration(s)\n", iteration));
+        display.appendText(String.format("P = %.2f", coefficients[0][colSize - 1]));
+
+    }  //  end of optimise()
 
 }  //  end of class
